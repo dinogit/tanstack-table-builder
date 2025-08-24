@@ -1,4 +1,3 @@
-// vite.config.ts
 import { defineConfig } from 'vite'
 import tsConfigPaths from 'vite-tsconfig-paths'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -11,7 +10,7 @@ export default defineConfig({
     },
     plugins: [
         tsConfigPaths(),
-        tanstackStart({ customViteReactPlugin: true }),
+        tanstackStart({ customViteReactPlugin: true, target: 'vercel' }),
         viteReact(),
         tailwindcss(),
     ],

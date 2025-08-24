@@ -1,4 +1,5 @@
 .idea
 node_modules
-.outro
+.nitro
 .tanstack
+.vercel

@@ -1,30 +1,35 @@
+import type { VisibilityState } from "@tanstack/react-table";
+import type { ColumnConfig } from "@/shared/types/column-config";
+import type { JsonData } from "@/shared/types/json-data";
 
-import type { VisibilityState } from "@tanstack/react-table"
-import {ColumnConfig} from "@/shared/types/column-config";
-import {JsonData} from "@/shared/types/json-data";
+export function generateTableCode(
+	columns: ColumnConfig[],
+	jsonData: JsonData[],
+	columnVisibility: VisibilityState,
+) {
+	const visibleColumns = columns
+		.filter((col) => columnVisibility[col.id])
+		.sort((a, b) => a.order - b.order);
 
-export function generateTableCode(columns: ColumnConfig[], jsonData: JsonData[], columnVisibility: VisibilityState) {
-    const visibleColumns = columns.filter((col) => columnVisibility[col.id]).sort((a, b) => a.order - b.order)
+	const columnDefinitions = visibleColumns
+		.map((column) => {
+			let cellFunction = "";
+			let filterFn = "";
 
-    const columnDefinitions = visibleColumns
-        .map((column) => {
-            let cellFunction = ""
-            let filterFn = ""
+			if (column.hasFacetedFilter && column.type === "string") {
+				filterFn = `
+    filterFn: "faceted",`;
+			} else if (column.type === "date") {
+				filterFn = `
+    filterFn: "dateFilter",`;
+			} else if (column.hasSliderFilter && column.type === "number") {
+				filterFn = `
+    filterFn: "sliderFilter",`;
+			}
 
-            if (column.hasFacetedFilter && column.type === "string") {
-                filterFn = `
-    filterFn: "faceted",`
-            } else if (column.type === "date") {
-                filterFn = `
-    filterFn: "dateFilter",`
-            } else if (column.hasSliderFilter && column.type === "number") {
-                filterFn = `
-    filterFn: "sliderFilter",`
-            }
-
-            switch (column.type) {
-                case "boolean":
-                    cellFunction = `
+			switch (column.type) {
+				case "boolean":
+					cellFunction = `
       ({ getValue }) => {
         const value = getValue()
         return (
@@ -32,17 +37,17 @@ export function generateTableCode(columns: ColumnConfig[], jsonData: JsonData[],
             {value ? "true" : "false"}
           </Badge>
         )
-      },`
-                    break
-                case "number":
-                    cellFunction = `
+      },`;
+					break;
+				case "number":
+					cellFunction = `
       cell: ({ getValue }) => {
         const value = getValue()
         return <span className="font-mono">{value?.toLocaleString()}</span>
-      },`
-                    break
-                case "date":
-                    cellFunction = `
+      },`;
+					break;
+				case "date":
+					cellFunction = `
       cell: ({ getValue }) => {
         const value = getValue()
         try {
@@ -51,10 +56,10 @@ export function generateTableCode(columns: ColumnConfig[], jsonData: JsonData[],
         } catch {
           return <span>{value}</span>
         }
-      },`
-                    break
-                case "object":
-                    cellFunction = `
+      },`;
+					break;
+				case "object":
+					cellFunction = `
       cell: ({ getValue }) => {
         const value = getValue()
         return (
@@ -62,97 +67,105 @@ export function generateTableCode(columns: ColumnConfig[], jsonData: JsonData[],
             {JSON.stringify(value)}
           </code>
         )
-      },`
-                    break
-                default:
-                    cellFunction = `
+      },`;
+					break;
+				default:
+					cellFunction = `
       cell: ({ getValue }) => {
         const value = getValue()
         if (value === null || value === undefined) {
           return <span className="text-muted-foreground italic">null</span>
         }
         return <span className="max-w-[200px] block truncate">{String(value)}</span>
-      },`
-            }
+      },`;
+			}
 
-            return `  {
+			return `  {
     id: "${column.id}",
     accessorKey: "${column.accessor}",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="${column.label}" />
     ),${filterFn}${cellFunction}
-  }`
-        })
-        .join(",\n")
+  }`;
+		})
+		.join(",\n");
 
-    const dataString = JSON.stringify(jsonData, null, 2)
+	const dataString = JSON.stringify(jsonData, null, 2);
 
-    const initialVisibilityEntries = Object.entries(columnVisibility)
-        .filter(([_, visible]) => !visible)
-        .map(([key, _]) => `    ${key}: false`)
+	const initialVisibilityEntries = Object.entries(columnVisibility)
+		.filter(([_, visible]) => !visible)
+		.map(([key, _]) => `    ${key}: false`);
 
-    const initialVisibilityString =
-        initialVisibilityEntries.length > 0 ? `{\n${initialVisibilityEntries.join(",\n")}\n  }` : "{}"
+	const initialVisibilityString =
+		initialVisibilityEntries.length > 0
+			? `{\n${initialVisibilityEntries.join(",\n")}\n  }`
+			: "{}";
 
-    const getFacetedFilterOptions = (columnId: string) => {
-        const column = columns.find((col) => col.id === columnId)
-        if (!column || column.type !== "string") return []
+	const getFacetedFilterOptions = (columnId: string) => {
+		const column = columns.find((col) => col.id === columnId);
+		if (!column || column.type !== "string") return [];
 
-        if (column.optionsMode === "custom" && column.options && column.options.length > 0) {
-            return column.options
-        }
+		if (
+			column.optionsMode === "custom" &&
+			column.options &&
+			column.options.length > 0
+		) {
+			return column.options;
+		}
 
-        // Auto-detect from data
-        const uniqueValues = new Set<string>()
-        jsonData.forEach((row) => {
-            const value = row[columnId]
-            if (value !== null && value !== undefined && typeof value === "string") {
-                uniqueValues.add(value)
-            }
-        })
+		// Auto-detect from data
+		const uniqueValues = new Set<string>();
+		jsonData.forEach((row) => {
+			const value = row[columnId];
+			if (value !== null && value !== undefined && typeof value === "string") {
+				uniqueValues.add(value);
+			}
+		});
 
-        if (uniqueValues.size < 2 || uniqueValues.size > 20) return []
+		if (uniqueValues.size < 2 || uniqueValues.size > 20) return [];
 
-        return Array.from(uniqueValues)
-            .sort()
-            .map((value) => ({
-                label: value,
-                value: value,
-            }))
-    }
+		return Array.from(uniqueValues)
+			.sort()
+			.map((value) => ({
+				label: value,
+				value: value,
+			}));
+	};
 
-    const facetedFilterOptionsCode = columns
-        .filter((col) => col.hasFacetedFilter && col.type === "string")
-        .map((col) => {
-            const options = getFacetedFilterOptions(col.id)
-            if (options.length === 0) return ""
-            const optionsString = options.map((opt) => `    { label: "${opt.label}", value: "${opt.value}" }`).join(",\n")
-            return `
+	const facetedFilterOptionsCode = columns
+		.filter((col) => col.hasFacetedFilter && col.type === "string")
+		.map((col) => {
+			const options = getFacetedFilterOptions(col.id);
+			if (options.length === 0) return "";
+			const optionsString = options
+				.map((opt) => `    { label: "${opt.label}", value: "${opt.value}" }`)
+				.join(",\n");
+			return `
 const ${col.id}Options = [
 ${optionsString}
-]`
-        })
-        .filter(Boolean)
-        .join("\n")
+]`;
+		})
+		.filter(Boolean)
+		.join("\n");
 
-    const facetedFiltersCode = columns
-        .filter((col) => col.hasFacetedFilter && col.type === "string")
-        .map((col) => {
-            const options = getFacetedFilterOptions(col.id)
-            return options.length > 0
-                ? `        {table.getColumn("${col.id}") && (
+	const facetedFiltersCode = columns
+		.filter((col) => col.hasFacetedFilter && col.type === "string")
+		.map((col) => {
+			const options = getFacetedFilterOptions(col.id);
+			return options.length > 0
+				? `        {table.getColumn("${col.id}") && (
           <DataTableFacetedFilter
             column={table.getColumn("${col.id}")}
             title="${col.label}"
             options={${col.id}Options}
           />
         )}`
-                : ""
-        })
-        .filter(Boolean)
-        .join("\n")
+				: "";
+		})
+		.filter(Boolean)
+		.join("\n");
 
-    return `'use client'
+	return `'use client'
 
 import React, { useState } from 'react'
 import { 
@@ -303,5 +316,5 @@ export default function TanstackTable() {
       <DataTablePagination table={table} />
     </div>
   )
-}`
+}`;
 }

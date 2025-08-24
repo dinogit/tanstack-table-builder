@@ -1,148 +1,168 @@
-import * as React from "react"
-import { Button } from "@/shared/components/ui/button"
-import { Label } from "@/shared/components/ui/label"
-import { Textarea } from "@/shared/components/ui/textarea"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/shared/components/ui/sheet"
-import { ScrollArea } from "@/shared/components/ui/scroll-area"
-import {SAMPLE_DATA} from "@/shared/lib/constants";
-import {FileUpload} from "@/shared/components/ui/file-upload";
-import {toast} from "sonner";
-import {FileWithPreview} from "@/shared/hooks/use-file-upload";
+import * as React from "react";
+import { toast } from "sonner";
+import { Button } from "@/shared/components/ui/button";
+import { FileUpload } from "@/shared/components/ui/file-upload";
+import { Label } from "@/shared/components/ui/label";
+import { ScrollArea } from "@/shared/components/ui/scroll-area";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@/shared/components/ui/sheet";
+import { Textarea } from "@/shared/components/ui/textarea";
+import type { FileWithPreview } from "@/shared/hooks/use-file-upload";
+import { SAMPLE_DATA } from "@/shared/lib/constants";
 
-export type JsonData = Record<string, string | number | boolean | null | undefined | object>
+export type JsonData = Record<
+	string,
+	string | number | boolean | null | undefined | object
+>;
 
 interface DataInputSheetProps {
-    open: boolean;
-    onClose: (open: boolean) => void;
-    data: JsonData[];
-    onDataChange: (data: JsonData[]) => void
+	open: boolean;
+	onClose: (open: boolean) => void;
+	data: JsonData[];
+	onDataChange: (data: JsonData[]) => void;
 }
 
 export function DataInputSheet({
-                                   open,
-                                   onClose,
-                                   data,
-                                   onDataChange,
-                               }: DataInputSheetProps) {
+	open,
+	onClose,
+	data,
+	onDataChange,
+}: DataInputSheetProps) {
+	const id = React.useId();
 
-    const id = React.useId()
+	function onUpload(file: FileWithPreview) {
+		const reader = new FileReader();
 
-    function onUpload(file: FileWithPreview) {
-        const reader = new FileReader();
+		if (!(file.file instanceof File)) {
+			toast.error("Invalid file", {
+				description: "Cannot read file metadata. Please upload a new file.",
+			});
+			return;
+		}
 
-        if (!(file.file instanceof File)) {
-            toast.error("Invalid file", {
-                description: "Cannot read file metadata. Please upload a new file.",
-            });
-            return;
-        }
+		reader.onload = (e) => {
+			try {
+				const jsonData = JSON.parse(e.target?.result as string);
 
+				if (!Array.isArray(jsonData)) {
+					throw new Error("JSON must be an array of objects");
+				}
 
-        reader.onload = (e) => {
-            try {
-                const jsonData = JSON.parse(e.target?.result as string);
+				if (jsonData.length === 0) {
+					throw new Error("Array cannot be empty");
+				}
 
-                if (!Array.isArray(jsonData)) {
-                    throw new Error("JSON must be an array of objects");
-                }
+				if (
+					!jsonData.every(
+						(item) =>
+							typeof item === "object" && item !== null && !Array.isArray(item),
+					)
+				) {
+					throw new Error("All items in the array must be objects");
+				}
 
-                if (jsonData.length === 0) {
-                    throw new Error("Array cannot be empty");
-                }
+				onDataChange(jsonData);
+				onClose(false);
+			} catch (error) {
+				toast.error("Invalid JSON format", {
+					description: (error as Error).message,
+				});
+			}
+		};
 
-                if (!jsonData.every((item) => typeof item === "object" && item !== null && !Array.isArray(item))) {
-                    throw new Error("All items in the array must be objects");
-                }
+		reader.onerror = (e) => {
+			toast.error("Failed to read file", {
+				description: e.target?.error?.message || "An unknown error occurred",
+			});
+		};
 
-                onDataChange(jsonData);
-                onClose(false);
-            } catch (error) {
-                toast.error("Invalid JSON format", {
-                    description: (error as Error).message,
-                });
-            }
-        };
+		reader.readAsText(file.file);
+	}
 
-        reader.onerror = (e) => {
-            toast.error("Failed to read file", {
-                description: e.target?.error?.message || "An unknown error occurred",
-            });
-        };
+	function onPaste(e: React.ChangeEvent<HTMLTextAreaElement>) {
+		try {
+			const jsonData = JSON.parse(e.target.value);
 
-        reader.readAsText(file.file);
-    }
+			if (!Array.isArray(jsonData)) {
+				throw new Error("JSON must be an array of objects");
+			}
 
-    function onPaste(e: React.ChangeEvent<HTMLTextAreaElement>) {
-        try {
-            const jsonData = JSON.parse(e.target.value);
+			if (jsonData.length === 0) {
+				throw new Error("Array cannot be empty");
+			}
 
-            if (!Array.isArray(jsonData)) {
-                throw new Error("JSON must be an array of objects");
-            }
+			if (
+				!jsonData.every(
+					(item) =>
+						typeof item === "object" && item !== null && !Array.isArray(item),
+				)
+			) {
+				throw new Error("All items in the array must be objects");
+			}
 
-            if (jsonData.length === 0) {
-                throw new Error("Array cannot be empty");
-            }
+			onDataChange(jsonData);
+			onClose(false);
+		} catch (error) {
+			toast.error("Error parsing JSON:", {
+				description: (error as Error).message,
+			});
+		}
+	}
 
-            if (!jsonData.every((item) => typeof item === "object" && item !== null && !Array.isArray(item))) {
-                throw new Error("All items in the array must be objects");
-            }
+	function onSampleDataSet() {
+		onDataChange(SAMPLE_DATA);
+		onClose(false);
+	}
 
-            onDataChange(jsonData);
-            onClose(false);
-        } catch (error) {
-            toast.error("Error parsing JSON:", {
-                description: (error as Error).message,
-            });
-        }
-    }
+	return (
+		<Sheet open={open} onOpenChange={onClose}>
+			<SheetContent side="right" className="w-full sm:max-w-lg">
+				<SheetHeader className="p-6">
+					<SheetTitle>Add Data</SheetTitle>
+					<SheetDescription>
+						Upload a JSON file, paste JSON data, or use sample data to get
+						started.
+					</SheetDescription>
+				</SheetHeader>
+				<ScrollArea className="h-[calc(100vh-120px)] p-6">
+					<div className="space-y-6 pr-4">
+						<FileUpload
+							accept={[".json"]}
+							onUpload={async (file: FileWithPreview) => onUpload(file)}
+							maxSize={1024 * 1024}
+						/>
 
-    function onSampleDataSet() {
-        onDataChange(SAMPLE_DATA);
-        onClose(false);
-    }
+						<div className="space-y-2">
+							<Label htmlFor="json-input">Or Paste JSON Data</Label>
+							<Textarea
+								id={id}
+								placeholder="Paste your JSON array here..."
+								className="field-sizing-content max-h-29.5 min-h-0 py-1.75"
+								value={JSON.stringify(data, null, 2)}
+								onChange={(e) => onPaste(e)}
+								rows={4}
+							/>
+						</div>
 
-    return (
-        <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent side="right" className="w-full sm:max-w-lg">
-                <SheetHeader className="p-6">
-                    <SheetTitle>Add Data</SheetTitle>
-                    <SheetDescription>Upload a JSON file, paste JSON data, or use sample data to get started.</SheetDescription>
-                </SheetHeader>
-                <ScrollArea className="h-[calc(100vh-120px)] p-6">
-                    <div className="space-y-6 pr-4">
-                        <FileUpload
-                            accept={[".json"]}
-                            onUpload={async (file: FileWithPreview) => onUpload(file)}
-                            maxSize={1024*1024}
-                        />
-
-                        <div className="space-y-2">
-                            <Label htmlFor="json-input">Or Paste JSON Data</Label>
-                            <Textarea
-                                id={id}
-                                placeholder="Paste your JSON array here..."
-                                className="field-sizing-content max-h-29.5 min-h-0 py-1.75"
-                                value={JSON.stringify(data, null, 2)}
-                                onChange={(e) => onPaste(e)}
-                                rows={4}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="json-input">Or start with sample data</Label>
-                            <div className="flex flex-row space-x-2">
-                                <Button variant="outline" onClick={() => onSampleDataSet()}>
-                                    Add Sample Data
-                                </Button>
-                                <Button variant="outline" onClick={() => onDataChange([])}>
-                                    Clear Data
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </ScrollArea>
-            </SheetContent>
-        </Sheet>
-    )
+						<div className="space-y-2">
+							<Label htmlFor="json-input">Or start with sample data</Label>
+							<div className="flex flex-row space-x-2">
+								<Button variant="outline" onClick={() => onSampleDataSet()}>
+									Add Sample Data
+								</Button>
+								<Button variant="outline" onClick={() => onDataChange([])}>
+									Clear Data
+								</Button>
+							</div>
+						</div>
+					</div>
+				</ScrollArea>
+			</SheetContent>
+		</Sheet>
+	);
 }
