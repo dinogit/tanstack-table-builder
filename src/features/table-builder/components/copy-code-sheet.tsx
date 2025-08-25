@@ -1,6 +1,5 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
 import * as React from "react";
-import { codeToHtml } from "shiki";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
@@ -27,7 +26,9 @@ interface CopyCodeSheetProps {
 }
 
 export function CopyCodeSheet({ code, open, onClose }: CopyCodeSheetProps) {
-	const [copied, setCopied] = React.useState<boolean>(false);
+
+    let theme = "github-light";
+    const [copied, setCopied] = React.useState<boolean>(false);
 
 	const handleCopy = async () => {
 		try {
@@ -39,7 +40,24 @@ export function CopyCodeSheet({ code, open, onClose }: CopyCodeSheetProps) {
 		}
 	};
 
-	return (
+
+
+    if (typeof window !== "undefined") {
+        const storedTheme = localStorage.getItem("vite-ui-theme");
+
+        if (storedTheme === "system") {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "github-dark"
+                : "github-light";
+        } else if (storedTheme === "dark") {
+            theme = "github-dark";
+        } else if (storedTheme === "light") {
+            theme = "github-light";
+        }
+    }
+
+
+    return (
 		<Sheet open={open} onOpenChange={onClose}>
 			<SheetContent side="right" className="w-full sm:max-w-3xl">
 				<SheetHeader className="p-6">
@@ -87,10 +105,13 @@ export function CopyCodeSheet({ code, open, onClose }: CopyCodeSheetProps) {
 						</TooltipContent>
 					</Tooltip>
 
-					<ScrollArea className="h-[calc(100vh-200px)] w-full rounded-md border">
-						<CodeBlock lang="ts">{code}</CodeBlock>
-					</ScrollArea>
-				</div>
+                    <ScrollArea className="h-[calc(100vh-200px)] w-full rounded-md border">
+                        <React.Suspense fallback={<div className="p-4 animate-pulse">Loading...</div>}>
+                            <CodeBlock lang="ts" theme={theme}>{code}</CodeBlock>
+                        </React.Suspense>
+                    </ScrollArea>
+
+                </div>
 			</SheetContent>
 		</Sheet>
 	);

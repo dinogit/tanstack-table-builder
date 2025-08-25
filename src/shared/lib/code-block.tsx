@@ -1,15 +1,16 @@
-import { type BundledLanguage, codeToHtml } from "shiki";
+"use client";
+
+import type { BundledLanguage } from 'shiki/bundle/web';
+import { use } from 'react';
+import { highlight } from './shared';
 
 interface Props {
-	children: string;
-	lang: BundledLanguage;
+    children: string;
+    lang: BundledLanguage;
+    theme: string;
 }
 
-export async function CodeBlock(props: Props) {
-	const out = await codeToHtml(props.children, {
-		lang: props.lang,
-		theme: "github-dark",
-	});
-
-	return <div dangerouslySetInnerHTML={{ __html: out }} />;
+export function CodeBlock({ children, lang, theme }: Props) {
+    return use(highlight(children, lang, theme));
 }
+
