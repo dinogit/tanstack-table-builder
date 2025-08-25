@@ -26,7 +26,7 @@ import {
 	multiSelectFilter,
 	numberFilter,
 	selectFilter,
-} from "@/features/table-builder/services/filterFns-library";
+} from "@/shared/components/data-table/filter-functions-library";
 import { generateTableCode } from "@/features/table-builder/services/generate-table-code";
 import { DataTableColumnHeader } from "@/shared/components/data-table/data-table-column-header";
 import { DataTableDateFilter } from "@/shared/components/data-table/data-table-date-filter";

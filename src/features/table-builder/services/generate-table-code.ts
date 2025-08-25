@@ -3,206 +3,281 @@ import type { ColumnConfig } from "@/shared/types/column-config";
 import type { JsonData } from "@/shared/types/json-data";
 
 export function generateTableCode(
-	columns: ColumnConfig[],
-	jsonData: JsonData[],
-	columnVisibility: VisibilityState,
+    columns: ColumnConfig[],
+    jsonData: JsonData[],
+    columnVisibility: VisibilityState,
 ) {
-	const visibleColumns = columns
-		.filter((col) => columnVisibility[col.id])
-		.sort((a, b) => a.order - b.order);
+    const visibleColumns = columns
+        .filter((col) => columnVisibility[col.id])
+        .sort((a, b) => a.order - b.order);
 
-	const columnDefinitions = visibleColumns
-		.map((column) => {
-			let cellFunction = "";
-			let filterFn = "";
+    // Feature detection
+    const hasDateColumns = visibleColumns.some(col => col.type === "date");
+    const hasFacetedFilters = visibleColumns.some(col => col.hasFacetedFilter && col.type === "string");
+    const hasSliderFilters = visibleColumns.some(col => col.hasSliderFilter && col.type === "number");
+    const hasBooleanColumns = visibleColumns.some(col => col.type === "boolean");
+    const hasNumberColumns = visibleColumns.some(col => col.type === "number");
+    const hasObjectColumns = visibleColumns.some(col => col.type === "object");
 
-			if (column.hasFacetedFilter && column.type === "string") {
-				filterFn = `
-    filterFn: "faceted",`;
-			} else if (column.type === "date") {
-				filterFn = `
-    filterFn: "dateFilter",`;
-			} else if (column.hasSliderFilter && column.type === "number") {
-				filterFn = `
-    filterFn: "sliderFilter",`;
-			}
+    // Generate imports based on features used
+    const imports = [
+        "import React, { useState } from 'react'",
+        "import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, getFacetedRowModel, getFacetedUniqueValues, flexRender, type ColumnDef, type SortingState, type ColumnFiltersState, type VisibilityState } from '@tanstack/react-table'",
+        "import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'",
+        "import { Input } from '@/components/ui/input'",
+        "import { DataTableColumnHeader } from '@/data-table/data-table-column-header'",
+        "import { DataTablePagination } from '@/components/data-table/data-table-pagination'",
+        "import { DataTableViewOptions } from '@/components/data-table/data-table-view-options'"
+    ];
 
-			switch (column.type) {
-				case "boolean":
-					cellFunction = `
-      ({ getValue }) => {
-        const value = getValue()
-        return (
-          <Badge variant={value ? "default" : "secondary"} className="text-xs">
-            {value ? "true" : "false"}
-          </Badge>
-        )
-      },`;
-					break;
-				case "number":
-					cellFunction = `
-      cell: ({ getValue }) => {
-        const value = getValue()
-        return <span className="font-mono">{value?.toLocaleString()}</span>
-      },`;
-					break;
-				case "date":
-					cellFunction = `
-      cell: ({ getValue }) => {
-        const value = getValue()
-        try {
-          const date = new Date(value)
-          return <span className="text-sm">{date.toLocaleDateString()}</span>
-        } catch {
-          return <span>{value}</span>
-        }
-      },`;
-					break;
-				case "object":
-					cellFunction = `
-      cell: ({ getValue }) => {
-        const value = getValue()
-        return (
-          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] block truncate">
-            {JSON.stringify(value)}
-          </code>
-        )
-      },`;
-					break;
-				default:
-					cellFunction = `
-      cell: ({ getValue }) => {
-        const value = getValue()
-        if (value === null || value === undefined) {
-          return <span className="text-muted-foreground italic">null</span>
-        }
-        return <span className="max-w-[200px] block truncate">{String(value)}</span>
-      },`;
-			}
+    if (hasBooleanColumns) {
+        imports.push("import { Badge } from '@/components/ui/badge'");
+    }
+    if (hasFacetedFilters) {
+        imports.push("import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter'");
+    }
+    if (hasDateColumns) {
+        imports.push("import { DataTableDateFilter } from '@/components/data-table/data-table-date-filter'");
+    }
+    if (hasSliderFilters) {
+        imports.push("import { DataTableSliderFilter } from '@/components/data-table/data-table-slider-filter'");
+    }
 
-			return `  {
+    // Import filter functions based on usage
+    const filterImports: string[] = [];
+    if (hasNumberColumns || hasSliderFilters) {
+        filterImports.push("numberFilter");
+    }
+    if (hasBooleanColumns) {
+        filterImports.push("booleanFilter");
+    }
+    if (hasFacetedFilters) {
+        filterImports.push("selectFilter", "multiSelectFilter");
+    }
+    if (hasObjectColumns) {
+        filterImports.push("arrayContainsFilter");
+    }
+    if (hasDateColumns) {
+        filterImports.push("dateRangeFilter");
+    }
+
+    if (filterImports.length > 0) {
+        imports.push(`import { ${filterImports.join(", ")} } from '@/lib/filterFns-library'`);
+    }
+
+    const columnDefinitions = visibleColumns
+        .map((column) => {
+            let cellFunction = "";
+            let filterFn = "";
+
+            if (column.hasFacetedFilter && column.type === "string") {
+                filterFn = `
+    filterFn: "multiSelect" as const,`;
+            } else if (column.type === "date") {
+                filterFn = `
+    filterFn: "dateRangeFilter" as const,`;
+            } else if (column.hasSliderFilter && column.type === "number") {
+                filterFn = `
+    filterFn: "number" as const,`;
+            }
+
+            switch (column.type) {
+                case "boolean":
+                    cellFunction = `
+    cell: ({ getValue }) => {
+      const value = getValue()
+      return (
+        <Badge variant={value ? "default" : "secondary"} className="text-xs">
+          {value ? "true" : "false"}
+        </Badge>
+      )
+    },`;
+                    break;
+                case "number":
+                    cellFunction = `
+    cell: ({ getValue }) => {
+      const value = getValue()
+      return <span className="font-mono">{value?.toLocaleString()}</span>
+    },`;
+                    break;
+                case "date":
+                    cellFunction = `
+    cell: ({ getValue }) => {
+      const value = getValue()
+      try {
+        const date = new Date(value)
+        return <span className="text-sm">{date.toLocaleDateString()}</span>
+      } catch {
+        return <span>{value}</span>
+      }
+    },`;
+                    break;
+                case "object":
+                    cellFunction = `
+    cell: ({ getValue }) => {
+      const value = getValue()
+      return (
+        <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] block truncate">
+          {JSON.stringify(value)}
+        </code>
+      )
+    },`;
+                    break;
+                default:
+                    cellFunction = `
+    cell: ({ getValue }) => {
+      const value = getValue()
+      if (value === null || value === undefined) {
+        return <span className="text-muted-foreground italic">null</span>
+      }
+      return <span className="max-w-[200px] block truncate">{String(value)}</span>
+    },`;
+            }
+
+            return `  {
     id: "${column.id}",
     accessorKey: "${column.accessor}",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="${column.label}" />
     ),${filterFn}${cellFunction}
   }`;
-		})
-		.join(",\n");
+        })
+        .join(",\n");
 
-	const dataString = JSON.stringify(jsonData, null, 2);
+    const dataString = JSON.stringify(jsonData, null, 2);
 
-	const initialVisibilityEntries = Object.entries(columnVisibility)
-		.filter(([_, visible]) => !visible)
-		.map(([key, _]) => `    ${key}: false`);
+    const initialVisibilityEntries = Object.entries(columnVisibility)
+        .filter(([_, visible]) => !visible)
+        .map(([key, _]) => `    ${key}: false`);
 
-	const initialVisibilityString =
-		initialVisibilityEntries.length > 0
-			? `{\n${initialVisibilityEntries.join(",\n")}\n  }`
-			: "{}";
+    const initialVisibilityString =
+        initialVisibilityEntries.length > 0
+            ? `{\n${initialVisibilityEntries.join(",\n")}\n  }`
+            : "{}";
 
-	const getFacetedFilterOptions = (columnId: string) => {
-		const column = columns.find((col) => col.id === columnId);
-		if (!column || column.type !== "string") return [];
+    const getFacetedFilterOptions = (columnId: string) => {
+        const column = columns.find((col) => col.id === columnId);
+        if (!column || column.type !== "string") return [];
 
-		if (
-			column.optionsMode === "custom" &&
-			column.options &&
-			column.options.length > 0
-		) {
-			return column.options;
-		}
+        if (
+            column.optionsMode === "custom" &&
+            column.options &&
+            column.options.length > 0
+        ) {
+            return column.options;
+        }
 
-		// Auto-detect from data
-		const uniqueValues = new Set<string>();
-		jsonData.forEach((row) => {
-			const value = row[columnId];
-			if (value !== null && value !== undefined && typeof value === "string") {
-				uniqueValues.add(value);
-			}
-		});
+        const uniqueValues = new Set<string>();
+        jsonData.forEach((row) => {
+            const value = row[columnId];
+            if (value !== null && value !== undefined && typeof value === "string") {
+                uniqueValues.add(value);
+            }
+        });
 
-		if (uniqueValues.size < 2 || uniqueValues.size > 20) return [];
+        if (uniqueValues.size < 2 || uniqueValues.size > 20) return [];
 
-		return Array.from(uniqueValues)
-			.sort()
-			.map((value) => ({
-				label: value,
-				value: value,
-			}));
-	};
+        return Array.from(uniqueValues)
+            .sort()
+            .map((value) => ({
+                label: value,
+                value: value,
+            }));
+    };
 
-	const facetedFilterOptionsCode = columns
-		.filter((col) => col.hasFacetedFilter && col.type === "string")
-		.map((col) => {
-			const options = getFacetedFilterOptions(col.id);
-			if (options.length === 0) return "";
-			const optionsString = options
-				.map((opt) => `    { label: "${opt.label}", value: "${opt.value}" }`)
-				.join(",\n");
-			return `
+    const facetedFilterOptionsCode = hasFacetedFilters ?
+        columns
+            .filter((col) => col.hasFacetedFilter && col.type === "string")
+            .map((col) => {
+                const options = getFacetedFilterOptions(col.id);
+                if (options.length === 0) return "";
+                const optionsString = options
+                    .map((opt) => `  { label: "${opt.label}", value: "${opt.value}" }`)
+                    .join(",\n");
+                return `
 const ${col.id}Options = [
 ${optionsString}
 ]`;
-		})
-		.filter(Boolean)
-		.join("\n");
+            })
+            .filter(Boolean)
+            .join("\n")
+        : "";
 
-	const facetedFiltersCode = columns
-		.filter((col) => col.hasFacetedFilter && col.type === "string")
-		.map((col) => {
-			const options = getFacetedFilterOptions(col.id);
-			return options.length > 0
-				? `        {table.getColumn("${col.id}") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("${col.id}")}
-            title="${col.label}"
-            options={${col.id}Options}
-          />
-        )}`
-				: "";
-		})
-		.filter(Boolean)
-		.join("\n");
+    const facetedFiltersCode = hasFacetedFilters ?
+        columns
+            .filter((col) => col.hasFacetedFilter && col.type === "string")
+            .map((col) => {
+                const options = getFacetedFilterOptions(col.id);
+                return options.length > 0
+                    ? `          {table.getColumn("${col.id}") && (
+            <DataTableFacetedFilter
+              column={table.getColumn("${col.id}")}
+              title="${col.label}"
+              options={${col.id}Options}
+            />
+          )}`
+                    : "";
+            })
+            .filter(Boolean)
+            .join("\n")
+        : "";
 
-	return `'use client'
+    const dateFiltersCode = hasDateColumns ?
+        `
+          {/* Date filters */}
+          {${JSON.stringify(visibleColumns.filter(col => col.type === "date").map(col => col.id))}.slice(0, 2).map((columnId) => {
+            const column = table.getColumn(columnId)
+            if (!column) return null
+            return (
+              <DataTableDateFilter
+                key={columnId}
+                column={column}
+                title={column.columnDef.header}
+                multiple={true}
+              />
+            )
+          })}`
+        : "";
 
-import React, { useState } from 'react'
-import { 
-  useReactTable, 
-  getCoreRowModel, 
-  getPaginationRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  flexRender,
-  type ColumnDef,
-  type SortingState,
-  type ColumnFiltersState,
-  type VisibilityState
-} from '@tanstack/react-table'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { DataTableColumnHeader } from '@/data-table/data-table-column-header'
-import { DataTablePagination } from '@/components/data-table/data-table-pagination'
-import { DataTableViewOptions } from '@/components/data-table/data-table-view-options'
-import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter'
-import { DataTableDateFilter } from '@/components/data-table/data-table-date-filter'
-import { DataTableSliderFilter } from '@/components/data-table/data-table-slider-filter'
+    const sliderFiltersCode = hasSliderFilters ?
+        `          {/* Slider filters */}
+          {${JSON.stringify(visibleColumns.filter(col => col.type === "number" && col.hasSliderFilter).map(col => col.id))}.slice(0, 3).map((columnId) => {
+            const column = table.getColumn(columnId)
+            if (!column) return null
+            return (
+              <DataTableSliderFilter
+                key={columnId}
+                column={column}
+                title={column.columnDef.header}
+              />
+            )
+          })}`
+        : "";
 
-interface DataRow {
+    // Generate filter functions mapping only if needed
+    const filterFnsCode = filterImports.length > 0 ?
+        `    filterFns: {
+      number: numberFilter,
+      boolean: booleanFilter,
+      select: selectFilter,
+      multiSelect: multiSelectFilter,
+      array: arrayContainsFilter,
+      dateRangeFilter
+    },` : "";
+
+    return `'use client'
+
+${imports.join("\n")}
+
+// Define your data type here
+type DataRow = {
   [key: string]: string | number | boolean | null | undefined | object
 }
-
 ${facetedFilterOptionsCode}
 
 const columns: ColumnDef<DataRow>[] = [
 ${columnDefinitions}
 ]
-
-
 
 export default function TanstackTable() {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -224,14 +299,7 @@ export default function TanstackTable() {
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: "includesStringSensitive",
-    filterFns: {
-       number: numberFilter,
-       boolean: booleanFilter,
-       select: selectFilter,
-       multiSelect: multiSelectFilter,
-       array: arrayContainsFilter,
-       dateRangeFilter
-    },
+${filterFnsCode}
     state: {
       sorting,
       columnFilters,
@@ -250,30 +318,7 @@ export default function TanstackTable() {
           className="max-w-sm h-8"
         />
         <div className="flex items-center space-x-2 ml-auto">
-          ${facetedFiltersCode}
-          {/* Date filters */}
-          {columns
-            .filter((col) => columnVisibility[col.id] !== false && col.type === "date")
-            .slice(0, 2) // Limit to 2 date filters to avoid crowding
-            .map((column) => (
-              <DataTableDateFilter
-                key={column.id}
-                column={table.getColumn(column.id)}
-                title={column.label}
-                multiple={true}
-              />
-            ))}
-          {/* Slider filters */}
-          {columns
-            .filter((col) => columnVisibility[col.id] !== false && col.type === "number" && col.hasSliderFilter)
-            .slice(0, 3)
-            .map((column) => (
-              <DataTableSliderFilter
-                key={column.id}
-                column={table.getColumn(column.id)}
-                title={column.label}
-              />
-            ))}
+${facetedFiltersCode}${dateFiltersCode}${sliderFiltersCode}
           <DataTableViewOptions table={table} />
         </div>
       </div>
