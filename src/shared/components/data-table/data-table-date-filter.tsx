@@ -13,7 +13,7 @@ import {
 	PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import { Separator } from "@/shared/components/ui/separator";
-import { formatDate } from "@/shared/lib/date-format";
+import {formatDate} from "date-fns";
 
 type DateSelection = Date[] | DateRange;
 
@@ -119,10 +119,10 @@ export function DataTableDateFilter({
     const formatDateRange = React.useCallback((range: DateRange) => {
         if (!range.from && !range.to) return "";
         if (range.from && range.to) {
-            return `${formatDate(range.from)} - ${formatDate(range.to)}`;
+            return `${formatDate(range.from, 'PPP')} - ${formatDate(range.to, 'PPP')}`;
         }
         const validDate = range.from || range.to;
-        return validDate ? formatDate(validDate) : "";
+        return validDate ? formatDate(validDate, 'PPP') : "";
     }, []);
 
 
@@ -152,7 +152,7 @@ export function DataTableDateFilter({
 
 		const hasSelectedDate = selectedDates.length > 0;
 		const dateText = hasSelectedDate
-			? formatDate(selectedDates[0])
+			? formatDate(selectedDates[0], 'PPP')
 			: "Select date";
 
 		return (

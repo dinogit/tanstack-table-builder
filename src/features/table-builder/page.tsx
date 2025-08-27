@@ -54,9 +54,12 @@ import {
 } from "@/shared/components/ui/table";
 import type { ColumnConfig } from "@/shared/types/column-config";
 import type { JsonData } from "@/shared/types/json-data";
+import {useIsMobile} from "@/shared/hooks/use-mobile";
 
 export function Page() {
-	const [data, setData] = React.useState<JsonData[]>([]);
+    const isMobile = useIsMobile();
+
+    const [data, setData] = React.useState<JsonData[]>([]);
 
 	const [columns, setColumns] = React.useState<ColumnConfig[]>([]);
 	const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -292,45 +295,53 @@ export function Page() {
 
 				{/* Live Preview Section */}
 				<Card className="relative">
-					<CardHeader>
-						<div className="flex items-center justify-between">
-							<div>
-								<CardTitle className="flex items-center gap-2">
-									Table Preview
-								</CardTitle>
-							</div>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setDataInputOpen(true)}
-								>
-									<Plus className="h-4 w-4 mr-2" />
-									{data.length > 0 ? "Update Data" : "Add Data"}
-								</Button>
+                    <CardHeader>
+                        <div className={`${isMobile ? "space-y-4" : "flex items-center justify-between"}`}>
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    Table Preview
+                                </CardTitle>
+                            </div>
+                            <div className={`flex items-center gap-2 ${isMobile ? "flex-wrap" : ""}`}>
+                                <Button
+                                    variant="outline"
+                                    size={isMobile ? "sm" : "sm"}
+                                    onClick={() => setDataInputOpen(true)}
+                                    className={isMobile ? "flex-1 min-w-0" : ""}
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    <span className={isMobile ? "truncate" : ""}>
+										{data.length > 0 ? "Update Data" : "Add Data"}
+									</span>
+                                </Button>
 
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={data.length === 0}
-									onClick={() => setColumnEditorOpen(true)}
-								>
-									<Settings className="h-4 w-4 mr-2" />
-									Configure Columns
-								</Button>
+                                <Button
+                                    variant="outline"
+                                    size={isMobile ? "sm" : "sm"}
+                                    disabled={data.length === 0}
+                                    onClick={() => setColumnEditorOpen(true)}
+                                    className={isMobile ? "flex-1 min-w-0" : ""}
+                                >
+                                    <Settings className="h-4 w-4 mr-2" />
+                                    <span className={isMobile ? "truncate" : ""}>
+										{isMobile ? "Configure" : "Configure Columns"}
+									</span>
+                                </Button>
 
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={data.length === 0}
-									onClick={() => setToggleCopyCodeSheet(true)}
-								>
-									Copy Code
-								</Button>
-							</div>
-						</div>
-					</CardHeader>
-					<CardContent>
+                                <Button
+                                    variant="outline"
+                                    size={isMobile ? "sm" : "sm"}
+                                    disabled={data.length === 0}
+                                    onClick={() => setToggleCopyCodeSheet(true)}
+                                    className={isMobile ? "flex-1 min-w-0" : ""}
+                                >
+                                    Copy Code
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+
+                    <CardContent>
 						{data.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12 text-center">
 								<FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -475,7 +486,9 @@ export function Page() {
 					open={toggleCopyCodeSheet}
 					onClose={() => setToggleCopyCodeSheet(false)}
 					code={generateTableCode(columns, data, columnVisibility)}
-				/>
+                    data={data}
+                    columns={columns}
+                />
 			</div>
 		</div>
 	);

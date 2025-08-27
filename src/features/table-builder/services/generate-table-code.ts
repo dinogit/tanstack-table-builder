@@ -21,11 +21,11 @@ export function generateTableCode(
 
     // Generate imports based on features used
     const imports = [
-        "import React, { useState } from 'react'",
+        "import * as React from 'react'",
         "import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, getFacetedRowModel, getFacetedUniqueValues, flexRender, type ColumnDef, type SortingState, type ColumnFiltersState, type VisibilityState } from '@tanstack/react-table'",
         "import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'",
         "import { Input } from '@/components/ui/input'",
-        "import { DataTableColumnHeader } from '@/data-table/data-table-column-header'",
+        "import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'",
         "import { DataTablePagination } from '@/components/data-table/data-table-pagination'",
         "import { DataTableViewOptions } from '@/components/data-table/data-table-view-options'"
     ];
@@ -62,7 +62,7 @@ export function generateTableCode(
     }
 
     if (filterImports.length > 0) {
-        imports.push(`import { ${filterImports.join(", ")} } from '@/lib/filterFns-library'`);
+        imports.push(`import { ${filterImports.join(", ")} } from '@/components/data-table/filter-functions-library'`);
     }
 
     const columnDefinitions = visibleColumns
@@ -72,13 +72,13 @@ export function generateTableCode(
 
             if (column.hasFacetedFilter && column.type === "string") {
                 filterFn = `
-    filterFn: "multiSelect" as const,`;
+    filterFn: multiSelectFilter,`;
             } else if (column.type === "date") {
                 filterFn = `
-    filterFn: "dateRangeFilter" as const,`;
+    filterFn: dateRangeFilter,`;
             } else if (column.hasSliderFilter && column.type === "number") {
                 filterFn = `
-    filterFn: "number" as const,`;
+    filterFn: numberFilter,`;
             }
 
             switch (column.type) {
@@ -232,7 +232,7 @@ ${optionsString}
               <DataTableDateFilter
                 key={columnId}
                 column={column}
-                title={column.columnDef.header}
+                title={columnId}
                 multiple={true}
               />
             )
@@ -248,7 +248,7 @@ ${optionsString}
               <DataTableSliderFilter
                 key={columnId}
                 column={column}
-                title={column.columnDef.header}
+                title={columnId}
               />
             )
           })}`
@@ -265,7 +265,9 @@ ${optionsString}
       dateRangeFilter
     },` : "";
 
-    return `'use client'
+    return `// data-table.tsx
+
+'use client'
 
 ${imports.join("\n")}
 
@@ -273,17 +275,17 @@ ${imports.join("\n")}
 type DataRow = {
   [key: string]: string | number | boolean | null | undefined | object
 }
-${facetedFilterOptionsCode}
 
+const data: DataRow[] = ${dataString}
+${facetedFilterOptionsCode}
 const columns: ColumnDef<DataRow>[] = [
 ${columnDefinitions}
 ]
-
 export default function TanstackTable() {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(${initialVisibilityString})
-  const [globalFilter, setGlobalFilter] = useState("")
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(${initialVisibilityString})
+  const [globalFilter, setGlobalFilter] = React.useState("")
 
   const table = useReactTable({
     data,
@@ -317,8 +319,10 @@ ${filterFnsCode}
           onChange={(event) => setGlobalFilter(String(event.target.value))}
           className="max-w-sm h-8"
         />
-        <div className="flex items-center space-x-2 ml-auto">
-${facetedFiltersCode}${dateFiltersCode}${sliderFiltersCode}
+        <div className="flex justify-between w-full">
+            <div className='flex align-baseline ml-2 space-x-2'>
+              ${facetedFiltersCode}${dateFiltersCode}${sliderFiltersCode}
+           </div>
           <DataTableViewOptions table={table} />
         </div>
       </div>

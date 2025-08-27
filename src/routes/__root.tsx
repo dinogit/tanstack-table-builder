@@ -23,7 +23,7 @@ export const Route = createRootRoute({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "TanStack Start Starter",
+				title: "TanStack Table Builder",
 			},
 		],
 		links: [
@@ -31,7 +31,13 @@ export const Route = createRootRoute({
 				rel: "stylesheet",
 				href: globalCss,
 			},
-		],
+            {
+                rel: "icon",
+                type: "image/x-icon",
+                href: "/favicon.svg",
+            },
+
+        ],
 	}),
 	component: RootComponent,
 });

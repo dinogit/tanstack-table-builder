@@ -122,15 +122,16 @@ export function DataInputSheet({
 	return (
 		<Sheet open={open} onOpenChange={onClose}>
 			<SheetContent side="right" className="w-full sm:max-w-lg">
-				<SheetHeader className="p-6">
+				<SheetHeader className="p-2 lg:p-6">
 					<SheetTitle>Add Data</SheetTitle>
 					<SheetDescription>
 						Upload a JSON file, paste JSON data, or use sample data to get
 						started.
 					</SheetDescription>
 				</SheetHeader>
-				<ScrollArea className="h-[calc(100vh-120px)] p-6">
+				<ScrollArea className="h-[calc(100vh-120px)] px-6">
 					<div className="space-y-6 pr-4">
+                        <Label>Upload data</Label>
 						<FileUpload
 							accept={[".json"]}
 							onUpload={async (file: FileWithPreview) => onUpload(file)}

@@ -530,17 +530,16 @@ export function ColumnEditorSheet({
 	};
 
 	return (
-		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent side="right" className="w-full sm:max-w-3xl">
-				<SheetHeader>
-					<SheetTitle>Configure Columns</SheetTitle>
-					<SheetDescription>
-						Customize column labels, visibility, and filter options. Drag
-						columns to reorder them.
-					</SheetDescription>
-				</SheetHeader>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent side="right" className="w-full sm:max-w-lg">
+                <SheetHeader className="p-2 lg:p-6">
+                    <SheetTitle>Configure Columns</SheetTitle>
+                    <SheetDescription>
+                        Customize column labels, visibility, and filter options. Drag columns to reorder them.
+                    </SheetDescription>
+                </SheetHeader>
 				<ScrollArea className="h-[calc(100vh-120px)] mt-6">
-					<div className="space-y-4">
+					<div className="lg:space-y-4">
 						<DndContext
 							sensors={sensors}
 							collisionDetection={closestCenter}
