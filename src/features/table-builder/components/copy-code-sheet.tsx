@@ -20,6 +20,9 @@ import { cn } from "@/shared/lib/utils";
 import {JsonData} from "@/shared/types/json-data";
 import {ColumnConfig} from "@/shared/types/column-config";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/shared/components/tremor/tabs";
+import {generateColumn} from "@/features/table-builder/services/generate-column";
+import {generateQuery} from "@/features/table-builder/services/generate-tanstack-query";
+import {generateAppComponent} from "@/features/table-builder/services/generate-app-component";
 
 interface CopyCodeSheetProps {
 	open: boolean;
@@ -112,6 +115,8 @@ export function CopyCodeSheet({ code, open, onClose, data, columns }: CopyCodeSh
                             <TabsTrigger value="data">Data</TabsTrigger>
                             <TabsTrigger value="columns">Columns</TabsTrigger>
                             <TabsTrigger value="table">TanStack Table</TabsTrigger>
+                            <TabsTrigger value="query">TanStack Query</TabsTrigger>
+                            <TabsTrigger value="page">Page</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="data" className="relative mt-4">
@@ -169,7 +174,7 @@ export function CopyCodeSheet({ code, open, onClose, data, columns }: CopyCodeSh
                                             variant="outline"
                                             size="icon"
                                             className="z-10 absolute border-none shadow-none top-4 right-4 disabled:opacity-100"
-                                            onClick={() => handleCopy(columnsCode)}
+                                            onClick={() => handleCopy(generateColumn(columns))}
                                             aria-label={copied ? "Copied" : "Copy to clipboard"}
                                             disabled={copied}
                                         >
@@ -202,7 +207,7 @@ export function CopyCodeSheet({ code, open, onClose, data, columns }: CopyCodeSh
 
                                 <ScrollArea className="h-[calc(100vh-250px)] w-full rounded-md border">
                                     <React.Suspense fallback={<div className="p-4 animate-pulse">Loading...</div>}>
-                                        <CodeBlock lang="ts" theme={theme}>{columnsCode}</CodeBlock>
+                                        <CodeBlock lang="ts" theme={theme}>{generateColumn(columns)}</CodeBlock>
                                     </React.Suspense>
                                 </ScrollArea>
                             </div>
@@ -253,6 +258,101 @@ export function CopyCodeSheet({ code, open, onClose, data, columns }: CopyCodeSh
                                     </React.Suspense>
                                 </ScrollArea>
                             </div>
+                        </TabsContent>
+
+                        <TabsContent value="query" className="relative mt-4">
+                            <div className="relative">
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="z-10 absolute border-none shadow-none top-4 right-4 disabled:opacity-100"
+                                            onClick={() => handleCopy(generateQuery())}
+                                            aria-label={copied ? "Copied" : "Copy to clipboard"}
+                                            disabled={copied}
+                                        >
+                                            <div
+                                                className={cn(
+                                                    "transition-all",
+                                                    copied ? "scale-100 opacity-100" : "scale-0 opacity-0",
+                                                )}
+                                            >
+                                                <CheckIcon
+                                                    className="stroke-emerald-500"
+                                                    size={16}
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <div
+                                                className={cn(
+                                                    "absolute transition-all",
+                                                    copied ? "scale-0 opacity-0" : "scale-100 opacity-100",
+                                                )}
+                                            >
+                                                <CopyIcon size={16} aria-hidden="true" />
+                                            </div>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="px-2 py-1 text-xs">
+                                        Click to copy table code
+                                    </TooltipContent>
+                                </Tooltip>
+
+                                <ScrollArea className="h-[calc(100vh-250px)] w-full rounded-md border">
+                                    <React.Suspense fallback={<div className="p-4 animate-pulse">Loading...</div>}>
+                                        <CodeBlock lang="tsx" theme={theme}>{generateQuery()}</CodeBlock>
+                                    </React.Suspense>
+                                </ScrollArea>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="page" className="relative mt-4">
+                            <div className="relative">
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="z-10 absolute border-none shadow-none top-4 right-4 disabled:opacity-100"
+                                            onClick={() => handleCopy(generateAppComponent())}
+                                            aria-label={copied ? "Copied" : "Copy to clipboard"}
+                                            disabled={copied}
+                                        >
+                                            <div
+                                                className={cn(
+                                                    "transition-all",
+                                                    copied ? "scale-100 opacity-100" : "scale-0 opacity-0",
+                                                )}
+                                            >
+                                                <CheckIcon
+                                                    className="stroke-emerald-500"
+                                                    size={16}
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <div
+                                                className={cn(
+                                                    "absolute transition-all",
+                                                    copied ? "scale-0 opacity-0" : "scale-100 opacity-100",
+                                                )}
+                                            >
+                                                <CopyIcon size={16} aria-hidden="true" />
+                                            </div>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="px-2 py-1 text-xs">
+                                        Click to copy table code
+                                    </TooltipContent>
+                                </Tooltip>
+
+                                <ScrollArea className="h-[calc(100vh-250px)] w-full rounded-md border">
+                                    <React.Suspense fallback={<div className="p-4 animate-pulse">Loading...</div>}>
+                                        <CodeBlock lang="tsx" theme={theme}>{generateAppComponent()}</CodeBlock>
+                                    </React.Suspense>
+                                </ScrollArea>
+                            </div>
+
                         </TabsContent>
                     </Tabs>
                 </div>

@@ -2,20 +2,20 @@ import type { Row } from "@tanstack/react-table";
 import type { DataRow } from "@/shared/types/row-config";
 
 // Number range filter
-export function numberFilter(
-	row: Row<DataRow>,
-	columnId: string,
-	filterValue: [number, number] | null,
-): boolean {
-	const raw = row.getValue(columnId);
-	if (raw == null) return false;
-	const rowValue = Number(raw);
-	if (isNaN(rowValue)) return false;
-
-	const [min, max] = filterValue ?? [];
-	if (min != null && rowValue < min) return false;
-	return !(max != null && rowValue > max);
-}
+// export function numberFilter(
+// 	row: Row<DataRow>,
+// 	columnId: string,
+// 	filterValue: [number, number] | null,
+// ): boolean {
+// 	const raw = row.getValue(columnId);
+// 	if (raw == null) return false;
+// 	const rowValue = Number(raw);
+// 	if (isNaN(rowValue)) return false;
+//
+// 	const [min, max] = filterValue ?? [];
+// 	if (min != null && rowValue < min) return false;
+// 	return !(max != null && rowValue > max);
+// }
 
 // Text includes filter
 export function textFilter(
@@ -103,7 +103,7 @@ function nestedObjectFilter(
 
 const filterFnRegistry = {
 	string: textFilter,
-	number: numberFilter,
+	// number: numberFilter,
 	boolean: booleanFilter,
 	enum: selectFilter,
 	multiselect: multiSelectFilter,

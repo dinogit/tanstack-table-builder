@@ -176,14 +176,7 @@ export function DataTableDateFilter({
 					size="sm"
 					className="h-8 border-dashed bg-transparent"
 				>
-					{hasValue ? (
-						<XCircle
-							className="mr-2 h-4 w-4 cursor-pointer"
-							onClick={onReset}
-						/>
-					) : (
-						<CalendarIcon className="mr-2 h-4 w-4" />
-					)}
+                    <CalendarIcon className="mr-2 h-4 w-4" />
 					{label}
 				</Button>
 			</PopoverTrigger>

@@ -1,3 +1,4 @@
+
 # TanStack Table Builder
 
 A modern, extensible table builder UI for React, powered by TanStack Table. Easily create, configure, and export advanced tables for your applications.

@@ -24,7 +24,6 @@ import {
 	booleanFilter,
 	dateRangeFilter,
 	multiSelectFilter,
-	numberFilter,
 	selectFilter,
 } from "@/shared/components/data-table/filter-functions-library";
 import { generateTableCode } from "@/features/table-builder/services/generate-table-code";
@@ -155,7 +154,7 @@ export function Page() {
                 return { ...baseColumn, filterFn: "dateRangeFilter" as const };
             }
             if (column.hasSliderFilter && column.type === "number") {
-                return { ...baseColumn, filterFn: "number" as const };
+                return { ...baseColumn, filterFn: "inNumberRange" };
             }
 
             return baseColumn;
@@ -186,7 +185,6 @@ export function Page() {
 		onGlobalFilterChange: setGlobalFilter,
 		globalFilterFn: "includesStringSensitive",
 		filterFns: {
-			number: numberFilter,
 			boolean: booleanFilter,
 			select: selectFilter,
 			multiSelect: multiSelectFilter,

@@ -11,6 +11,7 @@ import {
 } from "@/shared/components/ui/popover";
 import { Separator } from "@/shared/components/ui/separator";
 import { Slider } from "@/shared/components/ui/slider";
+import {CalendarIcon, SlidersHorizontal} from "lucide-react";
 
 interface DataTableSliderFilterProps<TData, TValue> {
 	column?: Column<TData, TValue>;
@@ -136,6 +137,7 @@ export function DataTableSliderFilter<TData, TValue>({
 					size="sm"
 					className="h-8 border-dashed bg-transparent"
 				>
+                    <SlidersHorizontal className="mr-2 h-4 w-4" />
 					{title}
 					{isFiltered && (
 						<>

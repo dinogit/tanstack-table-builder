@@ -272,7 +272,7 @@ ${optionsString}
 ${imports.join("\n")}
 
 // Define your data type here
-type DataRow = {
+export type DataRow = {
   [key: string]: string | number | boolean | null | undefined | object
 }
 
@@ -281,7 +281,16 @@ ${facetedFilterOptionsCode}
 const columns: ColumnDef<DataRow>[] = [
 ${columnDefinitions}
 ]
-export default function TanstackTable() {
+
+interface DataTableProps<TData, TValue> {
+ columns: ColumnDef<TData, TValue>[];
+ data: TData[];
+} 
+
+export function DataTable<TData, TValue>({
+ columns,
+ data,
+}: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(${initialVisibilityString})
